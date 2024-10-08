@@ -1,12 +1,13 @@
       ******************************************************************
-      * Author:
-      * Date:
-      * Purpose:
+      * Author:Tristan Christopherson
+      * Date:10/7/2024
+      * Purpose:Display Capabilities Of Cobol in record keeping
       * Tectonics: cobc
       ******************************************************************
        IDENTIFICATION DIVISION.
       *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-
-       PROGRAM-ID. YOUR-PROGRAM-NAME.
+       PROGRAM-ID. ATM-RECORD-KEEPER.
+       AUTHOR. Tristan Christopherson.
        ENVIRONMENT DIVISION.
       *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-
        CONFIGURATION SECTION.
@@ -482,4 +483,4 @@
       ** add other procedures here
 
 
-       END PROGRAM YOUR-PROGRAM-NAME.
+       END PROGRAM ATM-RECORD-KEEPER.
