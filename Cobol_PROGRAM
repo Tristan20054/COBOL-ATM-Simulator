@@ -444,7 +444,7 @@
            MOVE WS-TEMP-MS    TO WS-FORMATTED-MS.
        DISPLAY-MENU.
            MOVE "a32434" TO transactionInformation
-           PERFORM 5 TIMES
+           PERFORM 2 TIMES
                DISPLAY SPACE
            END-PERFORM
            DISPLAY "CHOOSE ONE OF THE FOLLOWING:"
@@ -490,8 +490,7 @@
                
                MOVE "p" TO displayMore
            END-IF
-           DISPLAY "TRANSACTION FILE CREATED!"
-           DISPLAY SPACE.
+           DISPLAY "TRANSACTION FILE CREATED!".
       ** add other procedures here
 
 
