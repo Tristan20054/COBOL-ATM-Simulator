@@ -87,7 +87,7 @@
        01 userDesignatedEnd PIC A.
        01 myTally PIC 9 VALUE ZERO.
        01 myTallyTheSecond PIC 99 VALUE ZERO.
-       01 keyWord PIC X(20) VALUE LOW-VALUES.
+       01 keyWord PIC X(20) VALUE SPACES.
        01 surpass PIC A.
        01 pastTot PIC 9(7).
 
@@ -173,10 +173,19 @@
                END-PERFORM
 
                DISPLAY SPACE
-               DISPLAY "Enter a keyword to search for"
-
-               ACCEPT keyWord
+               MOVE ZEROES TO myTallyTheSecond
                
+               PERFORM UNTIL myTallyTheSecond GREATER THAN 1
+                   MOVE ZEROES TO myTallyTheSecond
+                   DISPLAY "Enter a keyword to search for"
+                   
+
+                   ACCEPT keyWord
+                   
+                   INSPECT keyWord TALLYING myTallyTheSecond 
+                   FOR CHARACTERS BEFORE INITIAL SPACE
+                   
+               END-PERFORM
 
                DISPLAY SPACE
 
@@ -371,6 +380,7 @@
 
            END-PERFORM.
        HISTORY.
+           MOVE "N" TO immediateEnd
            MOVE SPACES TO errorCodes
            DISPLAY SPACE
            CLOSE fileName
@@ -433,6 +443,7 @@
            MOVE WS-TEMP-SEC   TO WS-FORMATTED-SEC
            MOVE WS-TEMP-MS    TO WS-FORMATTED-MS.
        DISPLAY-MENU.
+           MOVE "a32434" TO transactionInformation
            PERFORM 5 TIMES
                DISPLAY SPACE
            END-PERFORM
@@ -455,7 +466,8 @@
                DISPLAY "Start New Or Continue? (N/C)"
                ACCEPT displayMore
                
-               IF displayMore EQUAL "N" THEN
+               IF displayMore EQUAL "N" OR displayMore
+                   EQUAL "n" THEN
                    OPEN OUTPUT fileName
                ELSE
                    OPEN INPUT fileName
