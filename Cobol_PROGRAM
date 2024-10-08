@@ -6,28 +6,480 @@
       ******************************************************************
        IDENTIFICATION DIVISION.
       *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-
-       PROGRAM-ID. ADDITION-PROGRAM.
+       PROGRAM-ID. YOUR-PROGRAM-NAME.
        ENVIRONMENT DIVISION.
       *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-
        CONFIGURATION SECTION.
       *-----------------------
        INPUT-OUTPUT SECTION.
+
+       FILE-CONTROL.
+           SELECT fileName ASSIGN TO "transaction.dat"
+           ORGANIZATION IS LINE SEQUENTIAL.
       *-----------------------
        DATA DIVISION.
       *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-
        FILE SECTION.
+       FD fileName.
+       01 transactionInformation.
+           88 EndOfFile VALUE HIGH-VALUES.
+           02 transactionTime PIC X(22).
+           02 transactionAmount.
+               03 transactionNumber PIC Z(7)9.99.
+               03 transactionSign PIC A.
+           02 transactionType PIC A(8).
+           02 transactionBefore PIC Z(7)9.99.
+           02 transactionAfter PIC Z(7)9.99.
       *-----------------------
        WORKING-STORAGE SECTION.
-       77 X PIC 99.
-       77 Y PIC 99.
-       77 Z PIC 99.
+       01 searchOption PIC S999.
+           88 validNumSearch VALUE 1 THRU 3.
+           88 isTime VALUE 1.
+           88 isType VALUE 2.
+           88 isAmount VALUE 3.
+       01 option PIC S999.
+           88 validNum VALUE 1 THRU 5.
+           88 withdrawStuff VALUE 1.
+           88 depositStuff VALUE 2.
+           88 transactionHistory VALUE 3.
+           88 transactionSearch VALUE 4.
+           88 isCharacter VALUE 'a' THRU 'z'.
+           88 isNegative VALUE -99999999999 THRU 0.
+       01 WS-UNFORMATTED.
+           05 WS-TEMP-DATE-TIME.
+              10 WS-TEMP-DATE.
+                 15 WS-TEMP-YEAR  PIC  X(4).
+                 15 WS-TEMP-MONTH PIC  X(2).
+                 15 WS-TEMP-DAY   PIC  X(2).
+              10 WS-TEMP-TIME.
+                 15 WS-TEMP-HOUR  PIC  X(2).
+                 15 WS-TEMP-MIN   PIC  X(2).
+                 15 WS-TEMP-SEC   PIC  X(2).
+                 15 WS-TEMP-MS    PIC  X(2).
+              10 WS-DIFF-GMT         PIC X(4).
+       01 WS-FORMATTED-DT.
+           05 WS-FORMATTED-DATE-TIME.
+             15 WS-FORMATTED-YEAR  PIC  X(4).
+             15 FILLER             PIC X VALUE '-'.
+             15 WS-FORMATTED-MONTH PIC  X(2).
+             15 FILLER             PIC X VALUE '-'.
+             15 WS-FORMATTED-DAY   PIC  X(2).
+             15 FILLER             PIC X VALUE '-'.
+             15 WS-FORMATTED-HOUR  PIC  X(2).
+             15 FILLER             PIC X VALUE ':'.
+             15 WS-FORMATTED-MIN   PIC  X(2).
+             15 FILLER             PIC X VALUE ':'.
+             15 WS-FORMATTED-SEC   PIC  X(2).
+             15 FILLER             PIC X VALUE ':'.
+             15 WS-FORMATTED-MS    PIC  X(2).
+       01 immediateEnd PIC A.
+       01 displayMore PIC A.
+           88 yesValue VALUE "Y","y","YES","Yes".
+           88 noValue VALUE "N","n","NO","No".
+       01 myCounter PIC 99 VALUE 0.
+       01 addedValue PIC 9(7) VALUE 0.
+       01 formal PIC A(15) VALUE SPACE.
+       01 totalMoney PIC 9(7)V99 VALUE ZERO.
+       01 displayMoney PIC Z(7)9.99.
+       01 amountChosen PIC S9(7)V99 VALUE -1.
+           88 isNum VALUE 0 THRU 999999999999999999.
+       01 userDesignatedEnd PIC A.
+       01 myTally PIC 9 VALUE ZERO.
+       01 myTallyTheSecond PIC 99 VALUE ZERO.
+       01 keyWord PIC X(20) VALUE LOW-VALUES.
+       01 surpass PIC A.
+       01 pastTot PIC 9(7).
+
+       01 errorCodes PIC X(30) VALUE "ERROR: User Entered Big Number".
+           88 isCharacterValue VALUE "ERROR: User Entered Character".
+           88 isNegativeValue VALUE "ERROR: User Entered Negative".
+
+
+
       *-----------------------
        PROCEDURE DIVISION.
       *-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-
-       SET X TO 10.
-       SET Y TO 25 .
-       ADD X Y GIVING Z .
-       DISPLAY "X + Y = "Z.
-       STOP RUN.
-       END PROGRAM ADDITION-PROGRAM.
+       MAIN-PROCEDURE.
 
+      **
+      * The main procedure of the program
+      **
+            PERFORM CREATE-FILE
+            DISPLAY "Welcome To the ATM, what would you like to do?"
+
+            PERFORM UNTIL option EQUAL 5
+               MOVE -1 TO amountChosen
+               MOVE "ERROR: USER ENTERED BIG NUMBER" TO errorCodes
+               PERFORM DISPLAY-MENU
+               ACCEPT option
+
+               EVALUATE TRUE
+                   WHEN isCharacter SET isCharacterValue TO TRUE
+                   WHEN isNegative SET isNegativeValue TO TRUE
+                   WHEN withdrawStuff PERFORM WITHDRAWCASH
+                   WHEN depositStuff PERFORM DEPOSITCASH
+                   WHEN transactionHistory PERFORM HISTORY
+                   WHEN transactionSearch PERFORM DO-SEARCH
+                   WHEN validNum MOVE SPACES TO errorCodes
+               END-EVALUATE
+
+               IF errorCodes EQUAL SPACES THEN
+                   DISPLAY SPACE
+
+               ELSE
+                   DISPLAY errorCodes
+
+               END-IF
+
+
+
+
+            END-PERFORM
+
+            CLOSE fileName
+
+            STOP RUN.
+       DO-SEARCH.
+           
+           MOVE ZEROES TO searchOption
+           MOVE "a" TO userDesignatedEnd
+
+           MOVE ZEROES TO myCounter
+
+           CLOSE fileName
+
+           OPEN INPUT fileName
+
+           READ fileName
+               AT END SET EndOfFile TO TRUE
+           END-READ
+
+
+           IF EndOfFile THEN
+               DISPLAY "TRANSACTION HISTORY IS EMPTY!"
+               CLOSE fileName
+               OPEN OUTPUT fileName
+
+           ELSE
+
+               PERFORM UNTIL validNumSearch
+                   DISPLAY "WHAT CATEGORY DO YOU WANT TO SEARCH IN?"
+                   DISPLAY SPACE
+                   DISPLAY "1. DATE/TIME"
+                   DISPLAY "2. TYPE"
+                   DISPLAY "3. TRANSACTION AMOUNT"
+                   ACCEPT searchOption
+               END-PERFORM
+
+               DISPLAY SPACE
+               DISPLAY "Enter a keyword to search for"
+
+               ACCEPT keyWord
+               
+
+               DISPLAY SPACE
+
+               EVALUATE TRUE
+                   WHEN isTime PERFORM SEARCH-TIME
+                   WHEN isType PERFORM SEARCH-TYPE
+                   WHEN isAmount PERFORM SEARCH-AMOUNT
+               END-EVALUATE
+               
+               CLOSE fileName
+               
+               OPEN EXTEND fileName
+           END-IF.
+       SEARCH-TIME.
+           MOVE ZEROES TO myTallyTheSecond
+           INSPECT keyWord TALLYING myTallyTheSecond 
+           FOR CHARACTERS BEFORE INITIAL SPACE
+           
+           PERFORM VARYING myCounter FROM 1 BY 1
+           UNTIL EndOfFile OR userDesignatedEnd EQUAL "E"
+               MOVE 0 TO myTally
+               INSPECT transactionTime TALLYING myTally FOR ALL 
+               keyWord(1:myTallyTheSecond - 1)
+               IF myTally > 0 THEN
+                   DISPLAY "Match Found At Line " myCounter ":"
+                   DISPLAY SPACE
+                   DISPLAY myCounter ": " transactionTime " | "
+               transactionType " | " transactionAmount
+               " | " transactionBefore " ->" transactionAfter
+
+                   DISPLAY "Continue Or Exit? (C/E)"
+                   
+                   ACCEPT userDesignatedEnd
+
+               END-IF
+
+               READ fileName
+                   AT END SET EndOfFile TO TRUE
+               END-READ
+
+
+           END-PERFORM
+
+           DISPLAY "Search Ended! Enter Any Key To Continue"
+           ACCEPT amountChosen.
+       SEARCH-TYPE.
+           MOVE ZEROES TO myTallyTheSecond
+           INSPECT keyWord TALLYING myTallyTheSecond 
+           FOR CHARACTERS BEFORE INITIAL SPACE
+           
+           PERFORM VARYING myCounter FROM 1 BY 1
+           UNTIL EndOfFile OR userDesignatedEnd EQUAL "E"
+               MOVE 0 TO myTally
+               INSPECT transactionType TALLYING myTally FOR ALL 
+               keyWord(1:myTallyTheSecond - 1)
+               IF myTally > 0 THEN
+                   DISPLAY "Match Found At Line " myCounter ":"
+                   DISPLAY SPACE
+                   DISPLAY myCounter ": " transactionTime " | "
+               transactionType " | " transactionAmount
+               " | " transactionBefore " ->" transactionAfter
+
+                   DISPLAY "Continue Or Exit? (C/E)"
+                   
+                   ACCEPT userDesignatedEnd
+
+               END-IF
+
+               READ fileName
+                   AT END SET EndOfFile TO TRUE
+               END-READ
+
+
+           END-PERFORM
+
+           DISPLAY "Search Ended! Enter Any Key To Continue"
+           ACCEPT amountChosen.
+       SEARCH-AMOUNT.
+           MOVE ZEROES TO myTallyTheSecond
+           INSPECT keyWord TALLYING myTallyTheSecond 
+           FOR CHARACTERS BEFORE INITIAL SPACE
+           
+           PERFORM VARYING myCounter FROM 1 BY 1
+           UNTIL EndOfFile OR userDesignatedEnd EQUAL "E"
+               MOVE 0 TO myTally
+               INSPECT transactionAmount TALLYING myTally FOR ALL 
+               keyWord(1:myTallyTheSecond - 1)
+               IF myTally > 0 THEN
+                   DISPLAY "Match Found At Line " myCounter ":"
+                   DISPLAY SPACE
+                   DISPLAY myCounter ": " transactionTime " | "
+               transactionType " | " transactionAmount
+               " | " transactionBefore " ->" transactionAfter
+
+                   DISPLAY "Continue Or Exit? (C/E)"
+                   
+                   ACCEPT userDesignatedEnd
+
+               END-IF
+
+               READ fileName
+                   AT END SET EndOfFile TO TRUE
+               END-READ
+
+
+           END-PERFORM
+
+           DISPLAY "Search Ended! Enter Any Key To Continue"
+           ACCEPT amountChosen.
+       WITHDRAWCASH.
+           MOVE SPACES TO errorCodes
+           DISPLAY SPACE
+           PERFORM UNTIL isNum
+               DISPLAY "ENTER THE WITHDRAW AMOUNT: "
+               ACCEPT amountChosen
+               IF isNum AND totalMoney - amountChosen GREATER
+                   THAN -1
+
+               COMPUTE addedValue = totalMoney - amountChosen
+
+
+               MOVE totalMoney TO transactionBefore
+               MOVE addedValue TO transactionAfter
+
+
+               COMPUTE totalMoney = totalMoney - amountChosen
+
+               PERFORM GET-DATE
+
+               MOVE WS-FORMATTED-DATE-TIME TO transactionTime
+
+               STRING "+" DELIMITED BY SIZE
+                   amountChosen DELIMITED BY SPACE
+                   INTO formal
+               END-STRING
+
+               MOVE amountChosen TO transactionNumber
+               MOVE "-" TO transactionSign
+               MOVE "Withdraw" TO transactionType
+
+               IF amountChosen GREATER THAN ZERO THEN
+
+                   WRITE transactionInformation
+               END-IF
+
+               ELSE
+                   DISPLAY SPACE
+                   DISPLAY "NOT ENOUGH FUNDS AVAILABLE!"
+                   DISPLAY SPACE
+                   MOVE -1 TO amountChosen
+
+               END-IF
+
+           END-PERFORM.
+       DEPOSITCASH.
+           MOVE SPACES TO errorCodes
+           DISPLAY SPACE
+           PERFORM UNTIL isNum
+               DISPLAY "ENTER THE DEPOSIT AMOUNT: "
+               ACCEPT amountChosen
+               IF isNum
+
+                   COMPUTE addedValue = amountChosen + totalMoney
+
+
+                   MOVE totalMoney TO transactionBefore
+                   MOVE addedValue TO transactionAfter
+
+
+                   COMPUTE totalMoney = amountChosen + totalMoney
+
+                   PERFORM GET-DATE
+
+                   MOVE WS-FORMATTED-DATE-TIME TO transactionTime
+
+                   STRING "+" DELIMITED BY SIZE
+                       amountChosen DELIMITED BY SPACE
+                       INTO formal
+                   END-STRING
+
+                   MOVE amountChosen TO transactionNumber
+                   MOVE "+" TO transactionSign
+                   MOVE "Deposit" TO transactionType
+
+
+                   IF amountChosen GREATER THAN 0 THEN
+
+                       WRITE transactionInformation
+                   END-IF
+               END-IF
+
+
+           END-PERFORM.
+       HISTORY.
+           MOVE SPACES TO errorCodes
+           DISPLAY SPACE
+           CLOSE fileName
+           OPEN INPUT fileName
+           READ fileName
+               AT END SET EndOfFile TO TRUE
+           END-READ
+
+           IF EndOfFile THEN
+               DISPLAY "NO TRANSACTION DATA PRESENT!"
+               MOVE "Y" TO immediateEnd
+           END-IF
+           PERFORM VARYING myCounter FROM 1 BY 1 UNTIL
+           EndOfFile
+
+           IF FUNCTION MOD (myCounter 9) NOT EQUAL 0 OR surpass
+               EQUAL "Y" THEN
+               MOVE "N" TO surpass
+               DISPLAY myCounter ": " transactionTime " | "
+               transactionType " | " transactionAmount
+               " | " transactionBefore " ->" transactionAfter
+
+               READ fileName
+                   AT END SET EndOfFile TO TRUE
+               END-READ
+           ELSE
+               DISPLAY "DISPLAY MORE? (Y/N)"
+               ACCEPT displayMore
+               SUBTRACT 1 FROM myCounter
+               MOVE "Y" TO surpass
+               IF noValue THEN
+                   SET EndOfFile TO TRUE
+
+
+               END-IF
+           END-PERFORM.
+
+           CLOSE fileName
+
+
+
+           IF immediateEnd EQUALS "Y" THEN
+               OPEN OUTPUT fileName
+           ELSE
+               OPEN EXTEND fileName
+           END-IF
+
+           DISPLAY SPACE
+           DISPLAY "INPUT ANYTHING TO PROCEED!"
+           ACCEPT amountChosen.
+
+
+       GET-DATE.
+           MOVE FUNCTION CURRENT-DATE TO WS-UNFORMATTED
+           MOVE WS-TEMP-YEAR  TO WS-FORMATTED-YEAR
+           MOVE WS-TEMP-MONTH TO WS-FORMATTED-MONTH
+           MOVE WS-TEMP-DAY   TO WS-FORMATTED-DAY
+           MOVE WS-TEMP-HOUR  TO WS-FORMATTED-HOUR
+           MOVE WS-TEMP-MIN   TO WS-FORMATTED-MIN
+           MOVE WS-TEMP-SEC   TO WS-FORMATTED-SEC
+           MOVE WS-TEMP-MS    TO WS-FORMATTED-MS.
+       DISPLAY-MENU.
+           PERFORM 5 TIMES
+               DISPLAY SPACE
+           END-PERFORM
+           DISPLAY "CHOOSE ONE OF THE FOLLOWING:"
+           MOVE totalMoney TO displayMoney
+           DISPLAY "CURRENT BALANCE: " displayMoney
+           DISPLAY SPACE
+           DISPLAY "1. Withdraw"
+           DISPLAY "2. Deposit"
+           DISPLAY "3. Transaction History"
+           DISPLAY "4. Search Transaction History"
+           DISPLAY "5. EXIT".
+       CREATE-FILE.
+           call "CBL_CHECK_FILE_EXIST" using "transaction.dat"
+           transactionInformation
+
+           IF return-code NOT EQUAL ZERO THEN
+               OPEN OUTPUT fileName
+           ELSE
+               DISPLAY "Start New Or Continue? (N/C)"
+               ACCEPT displayMore
+               
+               IF displayMore EQUAL "N" THEN
+                   OPEN OUTPUT fileName
+               ELSE
+                   OPEN INPUT fileName
+                   
+                   READ fileName
+                       AT END SET EndOfFile TO TRUE
+                   END-READ
+                   
+                   PERFORM UNTIL EndOfFile
+                       MOVE transactionAfter TO pastTot
+                       READ fileName
+                           AT END SET EndOfFile TO TRUE
+                       END-READ
+                   END-PERFORM
+                   
+                   MOVE pastTot TO totalMoney
+                   CLOSE fileName
+                   OPEN EXTEND fileName
+               END-IF
+               
+               MOVE "p" TO displayMore
+           END-IF
+           DISPLAY "TRANSACTION FILE CREATED!"
+           DISPLAY SPACE.
+      ** add other procedures here
+
+
+       END PROGRAM YOUR-PROGRAM-NAME.
